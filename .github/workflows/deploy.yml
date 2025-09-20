@@ -72,7 +72,7 @@ jobs:
       - name: Trigger CodeDeploy
         run: |
           aws deploy create-deployment \
-            --application-name "hybrid05-cicd-server" \
+            --application-name "hybrid05-test-cicd-server" \
             --deployment-group-name "Production" \
             --deployment-config-name "CodeDeployDefault.AllAtOnce" \
             --s3-location bucket=${{ env.S3_BUCKET }},key=${{ env.S3_KEY }},bundleType=zip
