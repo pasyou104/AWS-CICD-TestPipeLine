@@ -51,6 +51,21 @@ jobs:
           chmod +x scripts/*.sh
           zip -r deploy.zip appspec.yml scripts docker-compose.yml .env
 
+      - name: Debug STS & S3 (who am I / bucket region / list)
+        run: |
+          echo "AWS_REGION=${{ env.AWS_REGION }}"
+          echo "S3_BUCKET=${{ env.S3_BUCKET }}"
+          echo "S3_KEY=${{ env.S3_KEY }}"
+          echo "== STS get-caller-identity =="
+          aws sts get-caller-identity
+          echo "== S3 bucket location =="
+          aws s3api get-bucket-location --bucket "${{ env.S3_BUCKET }}"
+          echo "== S3 list prefix (may be empty on first run) =="
+          aws s3 ls "s3://${{ env.S3_BUCKET }}/artifacts/" || true
+          echo "== Head-bucket (permission check) =="
+          aws s3api head-bucket --bucket "${{ env.S3_BUCKET }}" && echo "HEAD OK"
+
+
       - name: Upload to S3
         run: aws s3 cp ./deploy.zip "s3://${{ env.S3_BUCKET }}/${{ env.S3_KEY }}"
 
