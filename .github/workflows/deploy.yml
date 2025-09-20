@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  S3_BUCKET: hybrid05-cicd-server
+  S3_BUCKET: hybrid05-test-cicd-server
   S3_KEY: artifacts/${{ github.sha }}.zip
   IMAGE_TAG: ${{ github.sha }}
 
