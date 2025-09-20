@@ -1,0 +1,66 @@
+name: CI-CD (EC2 + CodeDeploy)
+
+on:
+  push:
+    branches: [ staging ]    # 필요시 main 으로 변경
+
+env:
+  AWS_REGION: YOUR_AWS_REGION
+  ECR_REPO: YOUR_ACCOUNT_ID.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/YOUR_ECR_REPO
+  IMAGE_TAG: ${{ github.sha }}
+  S3_BUCKET: YOUR_S3_BUCKET
+  S3_KEY: artifacts/${{ github.sha }}.zip
+  CODEDEPLOY_APP: YOUR_CODEDEPLOY_APP
+  CODEDEPLOY_DG: YOUR_CODEDEPLOY_DG
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # (A) AWS 자격증명 — Access Key 방식
+      - name: Configure AWS credentials (Access Key)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      # (B) OIDC 역할 사용 시 위 스텝 대신 아래 사용
+      # - name: Configure AWS credentials (OIDC)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: arn:aws:iam::YOUR_ACCOUNT_ID:role/github-actions-deploy
+      #     aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & Push image
+        run: |
+          docker build -t $ECR_REPO:$IMAGE_TAG .
+          docker push $ECR_REPO:$IMAGE_TAG
+
+      - name: Create .env for compose
+        run: |
+          cat > .env <<EOF
+          IMAGE_TAG=${IMAGE_TAG}
+          ECR_REPO=${ECR_REPO}
+          EOF
+
+      - name: Make deploy.zip (appspec + scripts + compose + .env)
+        run: |
+          chmod +x scripts/*.sh
+          zip -r deploy.zip appspec.yml scripts docker-compose.yml .env
+
+      - name: Upload to S3
+        run: aws s3 cp deploy.zip s3://$S3_BUCKET/$S3_KEY
+
+      - name: Trigger CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name "$CODEDEPLOY_APP" \
+            --deployment-group-name "$CODEDEPLOY_DG" \
+            --s3-location bucket=$S3_BUCKET,key=$S3_KEY,bundleType=zip
