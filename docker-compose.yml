@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  web:
+    image: "${ECR_REPO}:${IMAGE_TAG}"
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    # (선택) CloudWatch Logs 사용 시 권한/에이전트 준비 후 주석 해제
+    # logging:
+    #   driver: awslogs
+    #   options:
+    #     awslogs-region: YOUR_AWS_REGION
+    #     awslogs-group: /aws/ecs/cicd-web
+    #     awslogs-stream: web
