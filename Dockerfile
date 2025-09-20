@@ -10,4 +10,6 @@ RUN printf 'server {\n\
 }\n' > /etc/nginx/conf.d/default.conf
 
 # 기본 index.html (원하면 리포의 index.html로 대체 가능)
-RUN echo "<html><body><h1>Deployed via CodeDeploy</h1></body></html>" > /usr/share/nginx/html/index.html
+# RUN echo "<html><body><h1>Deployed via CodeDeploy</h1></body></html>" > /usr/share/nginx/html/index.html
+COPY index.html /usr/share/nginx/html/index.html
+
